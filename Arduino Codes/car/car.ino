@@ -2,6 +2,9 @@
 #include <nRF24L01.h>
 #include <RF24.h>
 #include <LiquidCrystal.h>
+#include<Wire.h>
+#include <QMC5883L.h>
+
 const int rs = 8, en = 9, d4 = 4, d5 = 5, d6 = 6, d7 = 7;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 uint8_t check[8] = {0x0,0x1,0x3,0x16,0x1c,0x8,0x0};
@@ -26,6 +29,10 @@ const int right_trig = 47;
 const int right_echo = 46;
 const int back_trig = 45;
 const int back_echo = 44;
+
+//Compass
+int heading;
+QMC5883L compass;
 
 int datacnt = 0;
 
@@ -89,6 +96,12 @@ void setup() {
   pinMode(right_echo,INPUT);
   pinMode(back_trig, OUTPUT);
   pinMode(back_echo,INPUT);
+
+  Wire.begin();
+  compass.init();
+  int r;
+  int16_t x,y,z,t;
+  r = compass.readRaw(&x,&y,&z,&t);
   
   Serial1.begin(115200);
   radio.begin();
@@ -195,6 +208,13 @@ String sensor(char dir){
   return data;
 }
 
+String compassf(){
+  if(compass.ready()) {
+    heading = compass.readHeading();
+  }
+  return String(heading);
+}
+
 void mode_RC(){
   if (radio.available()) {
     lcd.setCursor(8,0);
@@ -202,7 +222,7 @@ void mode_RC(){
     char text[8] = "";
     radio.read(&text, sizeof(text));
     if(datacnt >= 3){
-      Serial1.println(sensor('f') + " " + sensor('l') + " " + sensor('r') + " " + sensor('b'));
+      Serial1.println(sensor('f') + " " + sensor('l') + " " + sensor('r') + " " + sensor('b') + " " + compassf());
       datacnt = 0;
     }
     lcd.setCursor(8,1);
